@@ -4,15 +4,23 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "true",
+    "test": "nyc tape test.js | tap-spec"
   },
   "author": "Gwilyn Saunders",
   "license": "ISC",
   "peerDependencies": {
-    "webpack": ">2.0.0"
+    "webpack": ">4.0.0"
   },
   "dependencies": {
     "memory-fs": "^0.4.1",
     "multimatch": "^2.1.0"
+  },
+  "devDependencies": {
+    "metalsmith": "^2.3.0",
+    "nyc": "^12.0.2",
+    "tap-spec": "^5.0.0",
+    "tape": "^4.9.1",
+    "webpack": "^4.16.2"
   }
 }

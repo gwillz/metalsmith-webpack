@@ -29,7 +29,9 @@ module.exports = function main(options) {
             }
             
             // load the webpack config if specified
-            const settings = config ? loadConfig(config) : other;
+            const settings = (config)
+                ? loadConfig(path.resolve(metalsmith._directory, config))
+                : other;
             
             // Some basic entry files based on 'pattern'
             // Bogus output path for memory-fs
