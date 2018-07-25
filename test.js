@@ -6,59 +6,103 @@ const {exec} = require('child_process')
 const Metalsmith = require('metalsmith')
 const webpack = require('./index')
 
+// TODO test catching webpack errors?
+
 test("Execute example project", assert => {
-    new Metalsmith(path.resolve(__dirname, 'test/'))
-    .clean(true)
-    .source('src')
-    .destination('dest')
-    
+    create()
     // our plugin, with two entry files
     .use(webpack({
         pattern: 'entry-{1,2}.js',
         config: 'webpack.config.js',
     }))
-    
     // asserts performed in async
     .build((err, files) => {
         if (err) assert.fail(err);
         
+        // test exists
         assert.ok(files['entry-1.js'], 'builds [entry-1.js]');
         assert.ok(files['entry-2.js'], 'builds [entry-2.js]');
         
-        const wait = [];
-        
-        // execute output for entry-1
-        wait.push(exec('node ./test/dest/entry-1.js', (err, stdout, stderr) => {
-            if (err) assert.fail(stderr.toString());
-            
-            const actual = stdout.toString();
-            const expected = "other 1\nooooh.\n";
-            
-            // verify
-            assert.equal(actual, expected, 'stdout is correct [entry-1.js]');
-        }))
-        
-        // execute output for entry-2
-        wait.push(exec('node ./test/dest/entry-2.js', (err, stdout, stderr) => {
-            if (err) assert.fail(stderr.toString());
-            
-            const actual = stdout.toString();
-            const expected = "other 2\n";
-            
-            // verify
-            assert.equal(actual, expected, 'stdout is correct [entry-2.js]');
-        }))
-        
+        Promise.all([
+            // test entry-1
+            run('node ./test/dest/entry-1.js')
+            .then(actual => {
+                const expected = "other 1\nooooh.\n";
+                assert.equal(actual, expected, 'stdout is correct [entry-1.js]');
+            }),
+            // test entry-2
+            run('node ./test/dest/entry-2.js')
+            .then(actual => {
+                const expected = "other 2\n";
+                assert.equal(actual, expected, 'stdout is correct [entry-2.js]');
+            })
+        ])
+        // fail on any error
+        .catch(err => {
+            assert.fail(err.message);
+        })
         // end test after everything is done
-        Promise.all(wait)
         .then(() => assert.end());
     })
 })
 
-// TODO test empty pattern
+test("Empty pattern", assert => {
+    create()
+    .use(webpack({
+        pattern: "foo.bar"
+    }))
+    .build((err, files) => {
+        assert.ok(!!err, "error for bad pattern");
+        assert.end();
+    })
+})
 
-// TODO test catching webpack errors
+test("createEntry()", assert => {
+    const mock = {_directory: '/home', _source: 'src'};
+    const files = ['abc.js', '123.js'];
+    
+    const actual = webpack.createEntry(files, mock);
+    const expected = {
+        'abc': '/home/src/abc.js',
+        '123': '/home/src/123.js',
+    }
+    
+    assert.deepEqual(actual, expected);
+    assert.end();
+})
 
-// TODO test createEntry()
+test("loadConfig()", assert => {
+    const actual = webpack.loadConfig('./test/webpack.config.js', {
+        sourcemaps: 'inline',
+    })
+    const expected = {
+        mode: 'development',
+        sourcemaps: 'inline',
+        plugins: [{
+            definitions: { config_variable: '\'ooooh.\'' }
+        }],
+    }
+    
+    assert.deepEqual(actual, expected);
+    assert.end();
+})
 
-// TODO test loadConfig(), merging settings
+
+// promise-ify child_process.exec()
+function run(cmd) {
+    return new Promise(resolve => {
+        exec(cmd, (err, stdout, stderr) => {
+            if (err) throw new Error(stderr.toString());
+            resolve(stdout.toString());
+        })
+    })
+}
+
+
+// shorthand
+function create() {
+    return new Metalsmith(path.resolve(__dirname, 'test/'))
+    .clean(true)
+    .source('src')
+    .destination('dest')
+}

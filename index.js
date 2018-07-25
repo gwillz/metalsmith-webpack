@@ -84,16 +84,15 @@ function createEntry(files, metalsmith) {
 }
 
 /**
- * Load the webpack config file, if specified. Local settings (options) will
- * override ones loaded from the config file.
+ * Load a config file. Local (options) settings will
+ * override those loaded from the config file.
+ * This does a lookup that respects peerDependencies.
  */
 function loadConfig(config, settings) {
-    if (!config) return settings;
-    // this ensures we get the module path relative to the calling script
     const target = require.resolve(config, module.parent);
     return {...require(target), ...settings};
 }
 
 // export utility functions for testing
-exports.loadConfig = loadConfig;
-exports.createEntry = createEntry;
+module.exports.createEntry = createEntry;
+module.exports.loadConfig = loadConfig;
