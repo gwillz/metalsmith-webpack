@@ -93,3 +93,7 @@ function loadConfig(config, settings) {
     const target = require.resolve(config, module.parent);
     return {...require(target), ...settings};
 }
+
+// export utility functions for testing
+exports.loadConfig = loadConfig;
+exports.createEntry = createEntry;
