@@ -30,14 +30,14 @@ module.exports = function main(options) {
             
             // load the webpack config if specified
             const settings = (config)
-                ? loadConfig(path.resolve(metalsmith._directory, config))
+                ? loadConfig(path.resolve(metalsmith.directory(), config))
                 : other;
             
             // Some basic entry files based on 'pattern'
             // Bogus output path for memory-fs
             const engine = realwebpack({
                 ...settings,
-                entry: createEntry(validFiles, metalsmith),
+                entry: createEntry(validFiles, metalsmith.source()),
                 output: {path: '/', filename: '[name].js'},
             })
             // tack on the fake file system
@@ -54,6 +54,8 @@ module.exports = function main(options) {
                 
                 // This is pretty naive, and asummes webpack won't
                 // bastardise the output file name. But here we are.
+                // TODO this should just write any chunks output by webpack
+                //      and remove anything from 'validFiles'
                 for (let file of validFiles) {
                     let dest = path.resolve('/', path.basename(file));
                     files[file].contents = fs.readFileSync(dest, 'utf-8');
@@ -72,13 +74,11 @@ module.exports = function main(options) {
  * - ids is like: 'abc'
  * - path is like: '/.../src/js/abc.js'
  */
-function createEntry(files, metalsmith) {
+function createEntry(files, rootdir) {
     const entry = {};
     for (let file of files) {
         let {dir, name, base} = path.parse(file);
-        entry[name] = path.resolve(
-            metalsmith._directory, metalsmith._source, dir, base
-        );
+        entry[name] = path.resolve(rootdir, dir, base);
     }
     return entry;
 }

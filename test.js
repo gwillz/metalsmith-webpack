@@ -58,10 +58,9 @@ test("Empty pattern", assert => {
 })
 
 test("createEntry()", assert => {
-    const mock = {_directory: '/home', _source: 'src'};
     const files = ['abc.js', '123.js'];
     
-    const actual = webpack.createEntry(files, mock);
+    const actual = webpack.createEntry(files, '/home/src');
     const expected = {
         'abc': '/home/src/abc.js',
         '123': '/home/src/123.js',
