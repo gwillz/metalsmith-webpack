@@ -52,15 +52,17 @@ module.exports = function main(options) {
                     throw new Error(errors);
                 }
                 
-                // This is pretty naive, and asummes webpack won't
-                // bastardise the output file name. But here we are.
-                // TODO this should just write any chunks output by webpack
-                //      and remove anything from 'validFiles'
+                // This is pretty naive, but hopefully the '[name].js' format
+                // (from above) is consistent and things should pan out fine.
                 for (let file of validFiles) {
-                    let dest = path.resolve('/', path.basename(file));
-                    files[file].contents = fs.readFileSync(dest, 'utf-8');
+                    let {name, dir} = path.parse(file);
+                    let dest = path.join(dir, name + ".js");
+                    let mempath = '/' + name + ".js";
+                    
+                    files[dest] = files[file];
+                    files[dest].contents = fs.readFileSync(mempath, 'utf-8');
+                    if (file !== dest) delete files[file];
                 }
-                done();
             })
         }
         catch (err) {
