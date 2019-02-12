@@ -24,8 +24,6 @@ module.exports = function main(options) {
             // filter for processing files
             const validFiles = match(Object.keys(files), pattern);
             
-            console.log(validFiles)
-            
             if (validFiles.length === 0) {
                 throw new Error(`Pattern '${pattern}' did not match any files.`);
             }
