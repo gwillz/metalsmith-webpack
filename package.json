@@ -1,6 +1,6 @@
 {
   "name": "@goodthnx/metalsmith-webpack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A glob-based Webpack plugin for Metalsmith.",
   "main": "index.js",
   "repository": {
