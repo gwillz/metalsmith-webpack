@@ -16,33 +16,35 @@ test("Execute example project", assert => {
         config: 'webpack.config.js',
     }))
     // asserts performed in async
-    .build((err, files) => {
-        if (err) assert.fail(err);
-        
-        // test exists
-        assert.ok(files['entry-1.js'], 'builds [entry-1.js]');
-        assert.ok(files['entry-2.js'], 'builds [entry-2.js]');
-        
-        Promise.all([
-            // test entry-1
-            run('node ./test/dest/entry-1.js')
-            .then(actual => {
-                const expected = "other 1\nooooh.\n";
-                assert.equal(actual, expected, 'stdout is correct [entry-1.js]');
-            }),
-            // test entry-2
-            run('node ./test/dest/entry-2.js')
-            .then(actual => {
-                const expected = "other 2\n";
-                assert.equal(actual, expected, 'stdout is correct [entry-2.js]');
-            })
-        ])
-        // fail on any error
-        .catch(err => {
-            assert.fail(err.message);
-        })
-        // end test after everything is done
-        .then(() => assert.end());
+    .build(async (err, files) => {
+        try {
+            if (err) throw err;
+            
+            // test exists
+            assert.ok(files['entry-1.js'], 'builds [entry-1.js]');
+            assert.ok(files['entry-2.js'], 'builds [entry-2.js]');
+            
+            await Promise.all([
+                // test entry-1
+                run('node ./test/dest/entry-1.js')
+                .then(actual => {
+                    const expected = "other 1\nooooh.\n";
+                    assert.equal(actual, expected, 'stdout is correct [entry-1.js]');
+                }),
+                // test entry-2
+                run('node ./test/dest/entry-2.js')
+                .then(actual => {
+                    const expected = "other 2\n";
+                    assert.equal(actual, expected, 'stdout is correct [entry-2.js]');
+                })
+            ])
+        }
+        catch (err) {
+            assert.fail(err);
+        }
+        finally {
+            assert.end();
+        }
     })
 })
 

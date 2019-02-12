@@ -1,28 +1,30 @@
 
-const path = require('path')
-const match = require('multimatch')
-const fs = new (require('memory-fs'))()
+const path = require('path');
+const match = require('multimatch');
+const fs = new (require('memory-fs'))();
 // load as a peerDependency
 const realwebpack = (function() {
     const target = require.resolve('webpack', module.parent);
     return require(target);
-})()
+})();
 
 module.exports = function main(options) {
     options = Object.assign({
         pattern: '**/*.js', // Only process these files
-        config: null,       // load a PostCSS config from elsewhere
+        config: null,       // load a Webpack config from elsewhere
         // and any valid webpack options
         // note: 'entry' 'output' will be ignored.
-    }, options)
+    }, options);
     
     // plugin export
-    return async function webpack(files, metalsmith, done) {
+    return function webpack(files, metalsmith, done) {
         try {
             const {pattern, config, ...other} = options;
             
             // filter for processing files
             const validFiles = match(Object.keys(files), pattern);
+            
+            console.log(validFiles)
             
             if (validFiles.length === 0) {
                 throw new Error(`Pattern '${pattern}' did not match any files.`);
@@ -45,23 +47,27 @@ module.exports = function main(options) {
             
             // go.
             engine.run((err, stats) => {
-                // These errors get piped through metalsmith, in the catch().
-                if (err) throw new Error(err);
-                if (stats.hasErrors()) {
-                    const {errors} = stats.toJson();
-                    throw new Error(errors);
-                }
-                
-                // This is pretty naive, but hopefully the '[name].js' format
-                // (from above) is consistent and things should pan out fine.
-                for (let file of validFiles) {
-                    let {name, dir} = path.parse(file);
-                    let dest = path.join(dir, name + ".js");
-                    let mempath = '/' + name + ".js";
+                try {
+                    if (err) throw new Error(err);
+                    if (stats.hasErrors()) {
+                        const {errors} = stats.toJson();
+                        throw new Error(errors);
+                    }
                     
-                    files[dest] = files[file];
-                    files[dest].contents = fs.readFileSync(mempath, 'utf-8');
-                    if (file !== dest) delete files[file];
+                    // This assumes '[name].js' is consistent.
+                    for (let file of validFiles) {
+                        let {name, dir} = path.parse(file);
+                        let dest = path.join(dir, name + ".js");
+                        let mempath = '/' + name + ".js";
+                        
+                        files[dest] = files[file];
+                        files[dest].contents = fs.readFileSync(mempath, 'utf-8');
+                        if (file !== dest) delete files[file];
+                    }
+                    done();
+                }
+                catch (err) {
+                    done(err);
                 }
             })
         }
