@@ -1,6 +1,6 @@
 {
   "name": "@goodthnx/metalsmith-webpack",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A glob-based Webpack plugin for Metalsmith.",
   "main": "index.js",
   "repository": {
@@ -8,7 +8,6 @@
     "url": "bitbucket.org/goodthnx/metalsmith-webpack"
   },
   "scripts": {
-    "prepare": "true",
     "test": "nyc tape test.js | tap-spec"
   },
   "author": "Gwilyn Saunders",
