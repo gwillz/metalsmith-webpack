@@ -4,7 +4,7 @@ const path = require('path')
 const fs = require('fs')
 const {exec} = require('child_process')
 const Metalsmith = require('metalsmith')
-const webpack = require('./index')
+const webpack = require('./build/index')
 
 // TODO test catching webpack errors?
 
