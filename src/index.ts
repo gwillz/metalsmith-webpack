@@ -1,34 +1,44 @@
-// @ts-check
-/** @typedef {import('webpack')} webpack */
-/** @typedef {import('webpack').Compiler} Compiler */
 
-const path = require('path');
-const match = require('multimatch');
-const fs = new (require('memory-fs'))();
+import path from 'path';
+import match from 'multimatch';
+import memfs from 'memory-fs';
+import type { Plugin, Files } from 'metalsmith';
+import type { Compiler, Configuration } from 'webpack';
+
+type webpack = (options: Configuration) => Compiler;
+
+const fs = new memfs();
 
 // load webpack as a peerDependency
-/** @type {webpack} */
 const realwebpack = (function() {
-    const target = require.resolve('webpack', module.parent);
+    const target = require.resolve('webpack', module.parent!);
     return require(target);
-})();
+})() as webpack;
 
-module.exports = function main(options) {
-    options = Object.assign({
-        pattern: '**/*.js', // Only process these files
-        config: null,       // load a Webpack config from elsewhere
+interface Options extends Partial<Configuration> {
+    pattern: string; // Only process these files
+    config?: string; // // load a Webpack config from elsewhere
+    
+}
+
+module.exports = function main(opts: Partial<Options>): Plugin {
+    const options: Options = {
+        pattern: '**/*.js',
         // and any valid webpack options
         // note: 'entry' 'output' will be ignored.
-    }, options);
+        ...opts,
+    };
     
+    // Singleton compiler
     const getCompiler = (function() {
-        /** @type {Compiler} */
-        let cache;
         
-        // @ts-ignore
+        let cache: Compiler | undefined = undefined;
+        
+        // @ts-ignore : there's some extra stuff in the webpack namespace and
+        // I haven't bothered to get the typings right.
         let defaulter = new realwebpack.WebpackOptionsDefaulter();
         
-        return function getCompiler(options) {
+        return function getCompiler(options: Configuration) {
             if (cache) {
                 cache.options = defaulter.process(options);
             }
@@ -54,7 +64,7 @@ module.exports = function main(options) {
             
             // load the webpack config if specified
             const settings = (config)
-                ? loadConfig(path.resolve(metalsmith.directory(), config))
+                ? loadConfig(path.resolve(metalsmith.directory(), config), other)
                 : other;
             
             // Some basic entry files based on 'pattern'
@@ -69,9 +79,10 @@ module.exports = function main(options) {
             compiler.run(async (err, stats) => {
                 try {
                     if (err) throw err;
+                    
                     if (stats.hasErrors()) {
-                        const {errors} = stats.toJson();
-                        throw new Error(errors);
+                        const { errors } = stats.toJson();
+                        throw new Error(errors.join(", "));
                     }
                     
                     // This assumes '[name].js' is consistent.
@@ -86,15 +97,15 @@ module.exports = function main(options) {
                         // If we're not replacing the original file name.
                         if (file !== dest) delete files[file];
                     }
-                    done();
+                    done(null, files, metalsmith);
                 }
                 catch (err) {
-                    done(err);
+                    done(err, files, metalsmith);
                 }
             })
         }
         catch (err) {
-            done(err);
+            done(err, files, metalsmith);
         }
     }
 }
@@ -104,8 +115,9 @@ module.exports = function main(options) {
  * - ids is like: 'abc'
  * - path is like: '/.../src/js/abc.js'
  */
-function createEntry(files, rootdir) {
-    const entry = {};
+function createEntry(files: string[], rootdir: string): Record<string, string> {
+    const entry = {} as Record<string, string>;
+    
     for (let file of files) {
         let {dir, name, base} = path.parse(file);
         entry[name] = path.resolve(rootdir, dir, base);
@@ -113,7 +125,7 @@ function createEntry(files, rootdir) {
     return entry;
 }
 
-async function readMemFile(mempath) {
+async function readMemFile(mempath: string): Promise<string> {
     return new Promise((resolve, reject) => {
         fs.readFile(mempath, 'utf-8', (error, result) => {
             if (error) reject(error);
@@ -127,8 +139,8 @@ async function readMemFile(mempath) {
  * override those loaded from the config file.
  * This does a lookup that respects peerDependencies.
  */
-function loadConfig(config, settings) {
-    const target = require.resolve(config, module.parent);
+function loadConfig(config: string, settings: Configuration): Configuration {
+    const target = require.resolve(config, module.parent!);
     return {...require(target), ...settings};
 }
 
