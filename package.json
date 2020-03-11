@@ -4,6 +4,17 @@
   "description": "A glob-based Webpack plugin for Metalsmith.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "keywords": [
+    "metalsmith",
+    "webpack",
+    "static",
+    "plugin",
+    "javascript",
+    "transpiler",
+    "es6",
+    "js",
+    "babel"
+  ],
   "repository": {
     "type": "git",
     "url": "github.com/gwillz/metalsmith-webpack"
@@ -15,6 +26,10 @@
   },
   "author": "Gwilyn Saunders",
   "license": "MIT",
+  "files": [
+    "build",
+    "README.md"
+  ],
   "peerDependencies": {
     "webpack": ">4.0.0"
   },
