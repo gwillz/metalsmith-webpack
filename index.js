@@ -1,8 +1,13 @@
+// @ts-check
+/** @typedef {import('webpack')} webpack */
+/** @typedef {import('webpack').Compiler} Compiler */
 
 const path = require('path');
 const match = require('multimatch');
 const fs = new (require('memory-fs'))();
-// load as a peerDependency
+
+// load webpack as a peerDependency
+/** @type {webpack} */
 const realwebpack = (function() {
     const target = require.resolve('webpack', module.parent);
     return require(target);
@@ -15,6 +20,25 @@ module.exports = function main(options) {
         // and any valid webpack options
         // note: 'entry' 'output' will be ignored.
     }, options);
+    
+    const getCompiler = (function() {
+        /** @type {Compiler} */
+        let cache;
+        
+        // @ts-ignore
+        let defaulter = new realwebpack.WebpackOptionsDefaulter();
+        
+        return function getCompiler(options) {
+            if (cache) {
+                cache.options = defaulter.process(options);
+            }
+            else {
+                cache = realwebpack(options);
+                cache.outputFileSystem = fs;
+            }
+            return cache;
+        }
+    })();
     
     // plugin export
     return function webpack(files, metalsmith, done) {
@@ -35,18 +59,16 @@ module.exports = function main(options) {
             
             // Some basic entry files based on 'pattern'
             // Bogus output path for memory-fs
-            const engine = realwebpack({
+            const compiler = getCompiler({
                 ...settings,
                 entry: createEntry(validFiles, metalsmith.source()),
                 output: {path: '/', filename: '[name].js'},
-            })
-            // tack on the fake file system
-            engine.outputFileSystem = fs;
+            });
             
             // go.
-            engine.run((err, stats) => {
+            compiler.run(async (err, stats) => {
                 try {
-                    if (err) throw new Error(err);
+                    if (err) throw err;
                     if (stats.hasErrors()) {
                         const {errors} = stats.toJson();
                         throw new Error(errors);
@@ -59,7 +81,9 @@ module.exports = function main(options) {
                         let mempath = '/' + name + ".js";
                         
                         files[dest] = files[file];
-                        files[dest].contents = fs.readFileSync(mempath, 'utf-8');
+                        files[dest].contents = await readMemFile(mempath);
+                        
+                        // If we're not replacing the original file name.
                         if (file !== dest) delete files[file];
                     }
                     done();
@@ -87,6 +111,15 @@ function createEntry(files, rootdir) {
         entry[name] = path.resolve(rootdir, dir, base);
     }
     return entry;
+}
+
+async function readMemFile(mempath) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(mempath, 'utf-8', (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+        });
+    });
 }
 
 /**
