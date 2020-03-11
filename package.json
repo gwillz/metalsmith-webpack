@@ -1,11 +1,11 @@
 {
   "name": "@goodthnx/metalsmith-webpack",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "description": "A glob-based Webpack plugin for Metalsmith.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "bitbucket.org/goodthnx/metalsmith-webpack"
+    "url": "github.com/gwillz/metalsmith-webpack"
   },
   "scripts": {
     "test": "nyc tape test.js | tap-spec"
